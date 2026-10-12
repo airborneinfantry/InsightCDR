@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Call {{ cluster_id }}/{{ call_id }}/{{ cm_id }} — InsightCDR{% endblock %}
+{% block content %}
+<style>
+  .page-title { margin: 0 0 14px; font-size: 20px; }
+  .card {
+    background: var(--ic-surface); border: 1px solid var(--ic-border); border-radius: 8px;
+    padding: 16px 18px; margin-bottom: 20px;
+  }
+  .section-title { margin: 0 0 12px; font-size: 15px; }
+  .back { font-size: 13px; }
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px 16px;
+  }
+  .summary-grid .kpi-label { color: var(--ic-muted); font-size: 12px; font-weight: 600;
+                             text-transform: uppercase; letter-spacing: 0.4px; }
+  .summary-grid .kpi-value { font-size: 15px; font-weight: 600; margin-top: 2px;
+                             word-break: break-all; }
+  .note {
+    background: var(--ic-surface); border: 1px solid var(--ic-border); border-left: 4px solid var(--ic-accent);
+    border-radius: 4px; padding: 10px 14px; margin-bottom: 20px; font-size: 13px;
+  }
+  .timeline { list-style: none; margin: 0; padding: 0; }
+  .timeline li { padding: 6px 0 6px 28px; border-bottom: 1px solid var(--ic-border);
+                 position: relative; }
+  .timeline li:last-child { border-bottom: none; }
+  .timeline li::before {
+    content: ""; position: absolute; left: 8px; top: 12px;
+    width: 8px; height: 8px; border-radius: 50%; background: var(--ic-accent);
+  }
+  .timeline .t { color: var(--ic-muted); font-variant-numeric: tabular-nums; margin-right: 8px; }
+  .kind { display: inline-block; min-width: 84px; font-weight: 700; font-size: 12px;
+          text-transform: uppercase; letter-spacing: 0.4px; }
+  .kind-connect { color: #1e7d32; }
+  .kind-disconnect { color: #c0392b; }
+  .kind-originate { color: var(--ic-accent); }
+  table.legs { border-collapse: collapse; width: 100%; }
+  table.legs th, table.legs td {
+    text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--ic-border);
+    white-space: nowrap;
+  }
+  table.legs th { color: var(--ic-muted); font-size: 12px; text-transform: uppercase;
+                  letter-spacing: 0.4px; }
+  table.legs td.num, table.legs th.num { text-align: right;
+                                         font-variant-numeric: tabular-nums; }
+  table.legs tr:last-child td { border-bottom: none; }
+  .empty { color: var(--ic-muted); }
+</style>
+<p class="back"><a href="/search">&larr; Back to search</a></p>
+<h1 class="page-title">Call {{ cluster_id }} / {{ call_id }} / {{ cm_id }}</h1>
+{% if summary %}
+<section class="card">
+  <div class="summary-grid">
+    <div><div class="kpi-label">Started (UTC)</div><div class="kpi-value">{{ summary.dt_start }}</div></div>
+    <div><div class="kpi-label">Disposition</div><div class="kpi-value">{{ summary.disp }}</div></div>
+    <div><div class="kpi-label">Duration</div><div class="kpi-value">{{ summary.dur }}</div></div>
+    <div><div class="kpi-label">MOS best / avg</div><div class="kpi-value">{{ summary.mos_best }} / {{ summary.mos_avg }}</div></div>
+    <div><div class="kpi-label">Calling</div><div class="kpi-value">{{ summary.calling }}</div></div>
+    <div><div class="kpi-label">Called</div><div class="kpi-value">{{ summary.called }}</div></div>
+    <div><div class="kpi-label">User</div><div class="kpi-value">{{ summary.user }}</div></div>
+    <div><div class="kpi-label">Orig device</div><div class="kpi-value">{{ summary.odev }}</div></div>
+    <div><div class="kpi-label">Dest device</div><div class="kpi-value">{{ summary.ddev }}</div></div>
+  </div>
+</section>
+{% endif %}
+{% if extras %}
+<div class="note">
+  This stitch key ({{ cluster_id }} / {{ call_id }} / {{ cm_id }}) has {{ extras | length + 1 }} call rows;
+  recycled call_ids can merge distinct real calls. Rows sharing the key:
+  <table class="legs">
+    <thead><tr><th>Orig leg id</th><th>Started (UTC)</th><th class="num">Duration</th><th>Disposition</th><th class="num">MOS</th></tr></thead>
+    <tbody>
+      <tr><td>{{ summary.leg_id }}</td><td>{{ summary.dt_start }}</td><td class="num">{{ summary.dur }}</td><td>{{ summary.disp }}</td><td class="num">{{ summary.mos_best }}</td></tr>
+      {% for e in extras %}
+      <tr><td>{{ e.leg_id }}</td><td>{{ e.dt_start }}</td><td class="num">{{ e.dur }}</td><td>{{ e.disp }}</td><td class="num">{{ e.mos }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+<section class="card">
+  <h2 class="section-title">Timeline</h2>
+  <ol class="timeline">
+    {% for e in timeline %}
+    <li>
+      <span class="t">{{ e.dt }}</span>
+      <span class="kind kind-{{ e.kind }}">{{ e.kind }}</span>
+      leg {{ e.leg }}{% if e.cause is not none %} — cause {{ e.cause }}{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% if not timeline %}
+  <p class="empty">No call events recorded.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2 class="section-title">CDR legs ({{ cdr_legs | length }})</h2>
+  {% if cdr_legs %}
+  <table class="legs">
+    <thead><tr>
+      <th>Orig (UTC)</th><th>Connect (UTC)</th><th>Disc (UTC)</th>
+      <th>Calling</th><th>Called</th><th>Orig device</th><th>Dest device</th>
+      <th>User</th><th class="num">Duration</th><th class="num">Cause</th><th class="num">Leg id</th><th>File</th>
+    </tr></thead>
+    <tbody>
+    {% for l in cdr_legs %}
+      <tr>
+        <td>{{ l.dt_orig }}</td><td>{{ l.dt_connect }}</td><td>{{ l.dt_disc }}</td>
+        <td>{{ l.calling }}</td><td>{{ l.called }}</td>
+        <td>{{ l.odev }}</td><td>{{ l.ddev }}</td>
+        <td>{{ l.user }}</td>
+        <td class="num">{{ l.dur }}</td>
+        <td class="num">{{ l.cause if l.cause is not none else '—' }}</td>
+        <td class="num">{{ l.leg }}</td>
+        <td>{{ l.filename }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No CDR legs recorded for this call.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2 class="section-title">CMR legs ({{ cmr_legs | length }})</h2>
+  {% if cmr_legs %}
+  <table class="legs">
+    <thead><tr>
+      <th>Device</th><th>Stamp (UTC)</th>
+      <th class="num">Packets sent</th><th class="num">Packets recv</th><th class="num">Packets lost</th>
+      <th class="num">Jitter (ms)</th><th class="num">Latency (ms)</th>
+      <th class="num">MOS LQO</th><th class="num">MOS CQO</th>
+    </tr></thead>
+    <tbody>
+    {% for m in cmr_legs %}
+      <tr>
+        <td>{{ m.device }}</td><td>{{ m.dt }}</td>
+        <td class="num">{{ m.sent }}</td><td class="num">{{ m.recv }}</td><td class="num">{{ m.lost }}</td>
+        <td class="num">{{ m.jitter }}</td><td class="num">{{ m.latency }}</td>
+        <td class="num">{{ m.mos_lqo }}</td><td class="num">{{ m.mos_cqo }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No CMR legs recorded for this call.</p>
+  {% endif %}
+</section>
+{% endblock %}

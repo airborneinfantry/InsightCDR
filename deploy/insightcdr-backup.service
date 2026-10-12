@@ -1,0 +1,7 @@
+[Unit]
+Description=InsightCDR nightly backup
+
+[Service]
+Type=oneshot
+User=llmadmin
+ExecStart=/bin/bash -c 'ts=$(date +%%F) && pg_dump -h 127.0.0.1 -p 5433 -U insightcdr_app insightcdr | gzip > /opt/insightcdr/data/backups/insightcdr-$ts.sql.gz && ls -1t /opt/insightcdr/data/backups/insightcdr-*.sql.gz | tail -n +15 | xargs -r rm'

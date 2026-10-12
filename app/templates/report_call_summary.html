@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Call summary report — InsightCDR{% endblock %}
+{% block content %}
+<style>
+  @media print {
+    .topbar, .banner-error, .print-btn, .report-links { display: none !important; }
+    html, body { background: #fff !important; }
+    .container { max-width: none; padding: 0; }
+  }
+  .report-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+  .page-title, .section-title { margin: 0 0 8px; font-size: 20px; }
+  .section-title { font-size: 15px; }
+  .report-meta { margin: 0 0 8px; color: var(--ic-muted); font-size: 13px; }
+  .report-filter { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .report-filter label { font-weight: 600; }
+  .report-filter input[type=date], .report-filter select {
+    padding: 6px 10px; border: 1px solid var(--ic-border); border-radius: 4px;
+    font: inherit; background: var(--ic-surface); color: var(--ic-text);
+  }
+  .report-filter button, .print-btn {
+    padding: 6px 14px; border: 1px solid var(--ic-border); border-radius: 4px;
+    background: var(--ic-accent); color: #fff; font: inherit; cursor: pointer;
+  }
+  .report-card {
+    background: var(--ic-surface); border: 1px solid var(--ic-border); border-radius: 8px;
+    padding: 16px 18px; margin-bottom: 20px;
+  }
+  .report-card table { border-collapse: collapse; width: 100%; }
+  .report-card th, .report-card td {
+    text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--ic-border);
+  }
+  .report-card th { color: var(--ic-muted); font-size: 12px; text-transform: uppercase; }
+  .report-card td.num, .report-card th.num { text-align: right; }
+  .report-card tfoot td { font-weight: 700; border-top: 2px solid var(--ic-border); }
+  .empty { color: var(--ic-muted); }
+  .report-links { font-size: 13px; margin-bottom: 14px; }
+  svg.trend { width: 100%; height: auto; display: block; }
+</style>
+<div class="report-links">
+  Reports:
+  <a href="/reports/call-summary">Call summary</a> ·
+  <a href="/reports/quality?from={{ day }}&to={{ day }}">Quality</a> ·
+  <a href="/reports/utilization?from={{ day }}&to={{ day }}">Utilization</a>
+</div>
+<div class="report-head">
+  <div>
+    <h1 class="page-title">Call summary report — {{ day }} (UTC)</h1>
+    <p class="report-meta">
+      Cluster: {{ cluster or "all" }} · Generated {{ generated }} by {{ username }}
+    </p>
+  </div>
+  <form class="report-filter" method="get" action="/reports/call-summary">
+    <label for="day">Day</label>
+    <input type="date" id="day" name="day" value="{{ day }}">
+    <label for="cluster">Cluster</label>
+    <select id="cluster" name="cluster">
+      <option value="">All clusters</option>
+      {% for c in clusters %}
+      <option value="{{ c }}" {% if c == cluster %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+    <button>Apply</button>
+    <button type="button" class="print-btn" onclick="window.print()">Print</button>
+  </form>
+</div>
+<section class="report-card">
+  <h2 class="section-title">Calls by hour (UTC)</h2>
+  {% if hours %}
+  <table>
+    <thead><tr><th>Hour (UTC)</th><th class="num">Calls</th><th class="num">Answered</th>
+      <th class="num">Answered %</th><th class="num">Avg MOS</th></tr></thead>
+    <tbody>
+    {% for h in hours %}
+      <tr><td>{{ h.hr }}</td><td class="num">{{ h.calls }}</td><td class="num">{{ h.answered }}</td>
+          <td class="num">{{ h.pct }}</td><td class="num">{{ h.mos }}</td></tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr><td>Total</td>
+      <td class="num">{{ t_calls }}</td>
+      <td class="num">{{ t_answered }}</td>
+      <td class="num">{{ t_pct }}</td>
+      <td class="num">{{ t_mos }}</td></tr></tfoot>
+  </table>
+  {% else %}
+  <p class="empty">No calls on this day{% if cluster %} for cluster {{ cluster }}{% endif %}.</p>
+  {% endif %}
+</section>
+{% endblock %}

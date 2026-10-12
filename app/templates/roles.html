@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Device roles — InsightCDR{% endblock %}
+{% block content %}
+<style>
+  .page-title { margin: 0 0 14px; font-size: 20px; }
+  .roles-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .roles-form {
+    background: var(--ic-surface); border: 1px solid var(--ic-border); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 20px;
+  }
+  .roles-form .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .roles-form label { font-weight: 600; }
+  .roles-form input[type=text], .roles-form select {
+    padding: 6px 10px; border: 1px solid var(--ic-border); border-radius: 4px;
+    font: inherit; background: var(--ic-surface); color: var(--ic-text);
+  }
+  .roles-form button {
+    padding: 6px 14px; border: 1px solid var(--ic-border); border-radius: 4px;
+    background: var(--ic-accent); color: #fff; font: inherit; cursor: pointer;
+  }
+  .roles-form button:hover { background: var(--ic-accent-hover); }
+  .roles-card {
+    background: var(--ic-surface); border: 1px solid var(--ic-border); border-radius: 8px;
+    padding: 16px 18px;
+  }
+  .roles-card table { border-collapse: collapse; width: 100%; }
+  .roles-card th, .roles-card td {
+    text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--ic-border);
+  }
+  .roles-card th { color: var(--ic-muted); font-size: 12px; text-transform: uppercase;
+                   letter-spacing: 0.4px; }
+  .roles-card tr:last-child td { border-bottom: none; }
+  .role-chip {
+    display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px;
+    background: var(--ic-bg); border: 1px solid var(--ic-border); font-weight: 600;
+  }
+  .empty { color: var(--ic-muted); }
+  .trend-meta { color: var(--ic-muted); font-size: 12px; }
+  .section-title { font-size: 15px; }
+</style>
+<div class="roles-head">
+  <h1 class="page-title">Device roles</h1>
+  <span class="trend-meta">Device to role mapping used by the utilization dashboard (and at device_daily rollup time).</span>
+</div>
+<section class="roles-form">
+  <form method="post" action="/utilization/roles">
+    <div class="row">
+      <label for="device_name">Device name</label>
+      <input type="text" id="device_name" name="device_name" placeholder="e.g. SEP0A1B2C3D4E5F" required>
+      <label for="role">Role</label>
+      <select id="role" name="role">
+        {% for r in roles_allowed %}
+        <option value="{{ r }}">{{ r }}</option>
+        {% endfor %}
+      </select>
+      <button>Save mapping</button>
+    </div>
+  </form>
+</section>
+<section class="roles-card">
+  <h2 class="section-title" style="font-size:15px;margin:0 0 12px">Mappings ({{ rows | length }})</h2>
+  {% if rows %}
+  <table>
+    <thead><tr><th>Device</th><th>Role</th><th>Updated by</th><th>Updated at</th></tr></thead>
+    <tbody>
+    {% for m in rows %}
+      <tr><td>{{ m.device }}</td><td><span class="role-chip">{{ m.role }}</span></td>
+          <td>{{ m.updated_by }}</td><td>{{ m.updated_at }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No mappings yet — the utilization page seeds pattern-based defaults on its first render; save explicit mappings here to override them.</p>
+  <p class="empty">Valid roles: trunk, gateway, cube, phone, other.</p>
+  {% endif %}
+</section>
+{% endblock %}

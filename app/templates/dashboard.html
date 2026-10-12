@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — InsightCDR{% endblock %}
+{% block content %}
+<style>
+  .page-title { margin: 0 0 14px; font-size: 20px; }
+  .dash-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .dash-head form { margin-left: auto; }
+  .cluster-filter label { font-weight: 600; margin-right: 6px; }
+  .cluster-filter select {
+    padding: 6px 10px; border: 1px solid var(--ic-border); border-radius: 4px;
+    font: inherit; background: var(--ic-surface); color: var(--ic-text);
+  }
+  .kpi-strip {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px; margin: 16px 0 22px;
+  }
+  .kpi-card {
+    background: var(--ic-surface); border: 1px solid var(--ic-border); border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .kpi-label { color: var(--ic-muted); font-size: 12px; font-weight: 600;
+              text-transform: uppercase; letter-spacing: 0.4px; }
+  .kpi-value { font-size: 22px; font-weight: 700; margin-top: 2px; }
+  .kpi-sub { color: var(--ic-muted); font-size: 12px; margin-top: 2px; }
+  .trend-section, .worst-section {
+    background: var(--ic-surface); border: 1px solid var(--ic-border); border-radius: 8px;
+    padding: 16px 18px; margin-bottom: 20px;
+  }
+  .section-title { margin: 0 0 12px; font-size: 15px; }
+  svg.trend { width: 100%; height: auto; display: block; }
+  .worst-section table { border-collapse: collapse; width: 100%; }
+  .worst-section th, .worst-section td {
+    text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--ic-border);
+  }
+  .worst-section th { color: var(--ic-muted); font-size: 12px; text-transform: uppercase;
+                      letter-spacing: 0.4px; }
+  .worst-section td.num, .worst-section th.num { text-align: right; }
+  .worst-section td.mos { font-weight: 700; }
+  .worst-section tr:last-child td { border-bottom: none; }
+  .empty { color: var(--ic-muted); }
+</style>
+<div class="dash-head">
+  <h1 class="page-title">Dashboard</h1>
+  <form class="cluster-filter" method="get" action="/dashboard">
+    <label for="cluster">Cluster</label>
+    <select id="cluster" name="cluster" onchange="this.form.submit()">
+      <option value="">All clusters</option>
+      {% for c in clusters %}
+      <option value="{{ c }}" {% if c == cluster %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+    <noscript><button>Apply</button></noscript>
+  </form>
+</div>
+<section class="kpi-strip">
+  <div class="kpi-card"><div class="kpi-label">Calls today</div><div class="kpi-value">{{ kpi_calls_today }}</div><div class="kpi-sub">{{ kpi_calls_total }} all-time</div></div>
+  <div class="kpi-card"><div class="kpi-label">Calls (7d)</div><div class="kpi-value">{{ kpi_calls_7d }}</div></div>
+  <div class="kpi-card"><div class="kpi-label">Calls (30d)</div><div class="kpi-value">{{ kpi_calls_30d }}</div></div>
+  <div class="kpi-card"><div class="kpi-label">Avg MOS</div><div class="kpi-value">{{ kpi_avg_mos }}</div></div>
+  <div class="kpi-card"><div class="kpi-label">% MOS &lt; 3.5</div><div class="kpi-value">{{ kpi_pct_below }}</div></div>
+  <div class="kpi-card"><div class="kpi-label">Failed rate</div><div class="kpi-value">{{ kpi_failed_rate }}</div></div>
+</section>
+<section class="trend-section">
+  <h2 class="section-title">Avg MOS — last 14 days</h2>
+  {{ trend_svg | safe }}
+</section>
+<section class="worst-section">
+  <h2 class="section-title">Top 10 worst devices (avg MOS)</h2>
+  {% if worst %}
+  <table>
+    <thead><tr><th>Device</th><th class="num">Calls</th><th class="num">Avg MOS</th></tr></thead>
+    <tbody>
+    {% for d in worst %}
+      <tr><td>{{ d[0] }}</td><td class="num">{{ "{:,}".format(d[1]) }}</td><td class="num mos">{{ "%.2f" | format(d[2]) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No calls with MOS data yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

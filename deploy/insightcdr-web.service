@@ -1,0 +1,15 @@
+[Unit]
+Description=InsightCDR web
+After=network.target
+
+[Service]
+User=llmadmin
+WorkingDirectory=/opt/insightcdr
+EnvironmentFile=/opt/insightcdr/config/.env
+# No venv: the app runs on system python3 + user site-packages
+# (~/.local/lib/python3.14) exactly like every prior task's uvicorn runs.
+ExecStart=/usr/bin/python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8011
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}InsightCDR{% endblock %}</title>
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/htmx.min.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">InsightCDR</div>
+  <nav class="nav">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/search">Search</a>
+    <a href="/quality">Quality</a>
+    <a href="/utilization">Utilization</a>
+    <a href="/reports">Reports</a>
+  </nav>
+  <div class="topbar-spacer"></div>
+  <span class="topbar-user">{{ username }}</span>
+  <a class="topbar-logout" href="/logout">Log out</a>
+</header>
+{% if ingest_errors %}
+<div class="banner-error" role="alert">
+  Ingest failure: {{ ingest_errors }} failed ingest run(s) recorded in ingest_log — check the ingest logs (admin) or the dashboard for details.
+</div>
+{% endif %}
+<main class="container">
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

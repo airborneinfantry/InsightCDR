@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Quality report — InsightCDR{% endblock %}
+{% block content %}
+<style>
+  @media print {
+    .topbar, .banner-error, .print-btn, .report-links { display: none !important; }
+    html, body { background: #fff !important; }
+    .container { max-width: none; padding: 0; }
+  }
+  .report-head { display: flex; align-items: flex-start; gap: 46px; margin-bottom: 16px; }
+  .page-title, .section-title { margin: 0 0 8px; font-size: 20px; }
+  .section-title { font-size: 15px; }
+  .report-meta { margin: 0 0 8px; color: var(--ic-muted); font-size: 13px; }
+  .report-filter { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .report-filter label { font-weight: 600; }
+  .report-filter input[type=date], .report-filter select {
+    padding: 6px 10px; border: 1px solid var(--ic-border); border-radius: 4px;
+    font: inherit; background: var(--ic-surface); color: var(--ic-text);
+  }
+  .report-filter button, .print-btn {
+    padding: 6px 14px; border: 1px solid var(--ic-border); border-radius: 4px;
+    background: var(--ic-accent); color: #fff; font: inherit; cursor: pointer;
+  }
+  .report-card {
+    background: var(--ic-surface); border: 1px solid var(--ic-border); border-radius: 8px;
+    padding: 16px 18px; margin-bottom: 20px;
+  }
+  .report-card table { border-collapse: collapse; width: 100%; }
+  .report-card th, .report-card td {
+    text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--ic-border);
+  }
+  .report-card th { color: var(--ic-muted); font-size: 12px; text-transform: uppercase; }
+  .report-card td.num, .report-card th.num { text-align: right; }
+  .empty { color: var(--ic-muted); }
+  .report-links { font-size: 13px; margin-bottom: 14px; }
+</style>
+<div class="report-links">
+  Reports:
+  <a href="/reports/call-summary">Call summary</a> ·
+  <a href="/reports/quality?from={{ frm }}&to={{ to }}">Quality</a> ·
+  <a href="/reports/utilization?from={{ frm }}&to={{ to }}">Utilization</a>
+</div>
+<div class="report-head">
+  <div>
+    <h1 class="page-title">Quality report{% if frm or to %} — {{ frm or "start" }} to {{ to or "now" }}{% endif %}</h1>
+    <p class="report-meta">
+      Cluster: {{ cluster or "all" }} · Generated {{ generated }} by {{ username }}
+    </p>
+  </div>
+  <form class="report-filter" method="get" action="/reports/quality">
+    <label for="from">From</label>
+    <input type="date" id="from" name="from" value="{{ frm }}">
+    <label for="to">To</label>
+    <input type="date" id="to" name="to" value="{{ to }}">
+    <label for="cluster">Cluster</label>
+    <select id="cluster" name="cluster">
+      <option value="">All clusters</option>
+      {% for c in clusters %}
+      <option value="{{ c }}" {% if c == cluster %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+    <button>Apply</button>
+    <button type="button" class="print-btn" onclick="window.print()">Print</button>
+  </form>
+</div>
+<section class="report-card">
+  <h2 class="section-title">Per-device quality ({{ n_devices }} devices, worst first)</h2>
+  {% if devices %}
+  <table>
+    <thead><tr><th>Device</th><th class="num">Calls</th><th class="num">Avg MOS</th>
+      <th class="num">Below 3.5</th><th class="num">% of MOS-scored calls</th></tr></thead>
+    <tbody>
+    {% for d in devices %}
+      <tr><td><a href="{{ d.link }}">{{ d.name }}</a></td>
+          <td class="num">{{ d.calls }}</td>
+          <td class="num">{{ d.mos }}</td>
+          <td class="num">{{ d.below }}</td>
+          <td class="num">{{ d.pct }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No calls in this range{% if cluster %} for cluster {{ cluster }}{% endif %}.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Utilization — InsightCDR{% endblock %}
+{% block content %}
+<style>
+  .page-title { margin: 0 0 14px; font-size: 20px; }
+  .dash-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .dash-head form { margin-left: auto; }
+  .util-filter { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .util-filter label { font-weight: 600; }
+  .util-filter input[type=date], .util-filter select {
+    padding: 6px 10px; border: 1px solid var(--ic-border); border-radius: 4px;
+    font: inherit; background: var(--ic-surface); color: var(--ic-text);
+  }
+  .util-filter button {
+    padding: 6px 14px; border: 1px solid var(--ic-border); border-radius: 4px;
+    background: var(--ic-accent); color: #fff; font: inherit; cursor: pointer;
+  }
+  .util-filter button:hover { background: var(--ic-accent-hover); }
+  .trend-section {
+    background: var(--ic-surface); border: 1px solid var(--ic-border); border-radius: 8px;
+    padding: 16px 18px; margin-bottom: 20px;
+  }
+  .trend-head { display: flex; align-items: baseline; gap: 12px; }
+  .trend-head .section-title { margin: 0; }
+  .trend-meta { color: var(--ic-muted);  }
+  .section-title { margin: 0 0 12px; font-size: 15px; }
+  svg.trend { width: 100%; height: auto; display: block; }
+  .util-card {
+    background: var(--ic-surface); border: 1px solid var(--ic-border); border-radius: 8px;
+    padding: 16px 18px; margin-bottom: 20px;
+  }
+  .util-card table, .trend-section table { border-collapse: collapse; width: 100%; }
+  .util-card th, .util-card td {
+    text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--ic-border);
+  }
+  .util-card th { color: var(--ic-muted); font-size: 12px; text-transform: uppercase;
+                  letter-spacing: 0.4px; }
+  .util-card td.num, .util-card th.num { text-align: right; }
+  .util-card tr:last-child td { border-bottom: none; }
+  th.sortable-th { cursor: pointer; user-select: none; }
+  th.sortable-th::after { content: " ⇅"; color: var(--ic-muted); font-size: 11px; }
+  th[data-dir="asc"]::after { content: " ▲"; }
+  th[data-dir="desc"]::after { content: " ▼"; }
+  .role-chip {
+    display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px;
+    background: var(--ic-bg); border: 1px solid var(--ic-border); font-weight: 600;
+  }
+  .empty { color: var(--ic-muted); }
+  .backlink { font-size: 13px; }
+  .summary-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 0 0 20px; }
+  .summary-tiles .util-card { margin: 0; }
+  .summary-tiles .kpi-label { color: var(--ic-muted); font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.4px; }
+  .summary-tiles .kpi-value { font-size: 20px; font-weight: 700; }
+</style>
+<div class="dash-head">
+  {% if device %}
+  <h1 class="page-title">Utilization — {{ device }}</h1>
+  <span class="role-chip">{{ cur_role or "unmapped" }}</span>
+  <a class="backlink" href="/utilization">← All devices</a>
+  {% else %}
+  <h1 class="page-title">Utilization</h1>
+  {% endif %}
+  <form class="util-filter" method="get"
+        action="{{ '/utilization/device/' ~ device if device else '/utilization' }}">
+    <label for="from">From</label>
+    <input type="date" id="from" name="from" value="{{ from }}">
+    <label for="to">To</label>
+    <input type="date" id="to" name="to" value="{{ to }}">
+    {% if not device %}
+    <label for="role">Role</label>
+    <select id="role" name="role">
+      <option value="">All roles</option>
+      {% for r in roles_allowed %}
+      <option value="{{ r }}" {% if r == role %}selected{% endif %}>{{ r }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <button>Apply</button>
+  </form>
+</div>
+{% if device %}
+<section class="summary-tiles">
+  <div class="util-card"><div class="kpi-label">Total calls</div><div class="kpi-value">{{ total_calls }}</div></div>
+  <div class="util-card"><div class="kpi-label">Total minutes</div><div class="kpi-value">{{ total_minutes }}</div></div>
+  <div class="util-card"><div class="kpi-label">Peak-hour calls</div><div class="kpi-value">{{ peak_calls }}</div></div>
+  <div class="util-card"><div class="kpi-label">Days covered</div><div class="kpi-value">{{ n_days }}</div></div>
+  <div class="util-card"><div class="kpi-label">In calls table</div><div class="kpi-value">{{ n_orig }} orig / {{ n_dest }} dest</div></div>
+</section>
+<section class="trend-section">
+  <h2 class="section-title">Calls per day — {{ device }}</h2>
+  {% if spark %}{{ spark | safe }}{% else %}<p class="empty">No utilization data for this device.</p>{% endif %}
+</section>
+<section class="util-card">
+  <h2 class="section-title">Per-day breakdown</h2>
+  {% if days %}
+  <table class="sortable">
+    <thead><tr><th>Day</th><th class="num">Calls</th><th class="num">Minutes</th><th>Peak hour</th><th class="num">Peak-hour calls</th></tr></thead>
+    <tbody>
+    {% for d in days %}
+      <tr><td>{{ d.day }}</td><td class="num" data-v="{{ d.calls_raw }}">{{ d.calls }}</td><td class="num" data-v="{{ d.minutes_raw }}">{{ d.minutes }}</td><td>{{ d.peak_hour }}</td><td class="num" data-v="{{ d.peak_raw }}">{{ d.peak_calls }}</td>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+{% else %}
+<section class="trend-section">
+  <h2 class="section-title">Calls per day by role</h2>
+  {% if trends %}
+  {% for t in trends %}
+  <div class="trend-head">
+    <h3 class="section-title" style="font-size:13px">{{ t.role }} · {{ t.cluster }}</h3>
+    <span class="trend-meta">{{ "{:,}".format(t.calls) }} calls over {{ t.days }} days —
+      <a href="{{ t.link }}">filter</a></span>
+  </div>
+  {{ t.svg | safe }}
+  {% endfor %}
+  {% else %}
+  <p class="empty">No device_daily rows in the selected range.</p>
+  {% endif %}
+</section>
+<section class="util-card">
+  <h2 class="section-title">Devices by total calls ({{ n_devices }})</h2>
+  {% if rows | length >= 500 %}<p class="empty">Showing the first 500 devices by total calls — narrow the range or role to see more.</p>{% endif %}
+  {% if rows %}
+  <table class="sortable">
+    <thead><tr><th>Device</th><th>Cluster</th><th>Role</th><th class="num">Calls</th><th class="num">Minutes</th><th class="num">Peak-hour calls</th><th class="num">Days</th></tr></thead>
+    <tbody>
+    {% for d in rows %}
+      <tr><td><a href="{{ d.link }}">{{ d.name }}</a></td><td>{{ d.cluster }}</td><td><span class="role-chip">{{ d.role }}</span></td>
+          <td class="num" data-v="{{ d.calls_raw }}">{{ d.calls }}</td>
+          <td class="num" data-v="{{ d.minutes_raw }}">{{ d.minutes }}</td>
+          <td class="num" data-v="{{ d.peak_raw }}">{{ d.peak }}</td>
+          <td class="num" data-v="{{ d.days_raw }}">{{ d.days }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No device_daily rows in the selected range.</p>
+  {% endif %}
+</section>
+{% endif %}
+<script>
+(function () {
+  document.querySelectorAll("table.sortable th").forEach(function (th, ti) {
+    th.addEventListener("click", function () {
+      var table = th.closest("table");
+      var tbody = table.tBodies[0];
+      var rows = Array.prototype.slice.call(tbody.rows);
+      var dir = th.dataset.dir === "asc" ? -1 : 1;
+      Array.prototype.forEach.call(table.querySelectorAll("th"), function (o) { o.removeAttribute("data-dir"); });
+      th.dataset.dir = dir === 1 ? "asc" : "desc";
+      var col = ti;
+      rows.sort(function (a, b) {
+        var ca = a.cells[col], cb = b.cells[col];
+        var va = ca.dataset.v !== undefined && ca.dataset.v !== "" ? parseFloat(ca.dataset.v) : NaN;
+        var vb = cb.dataset.v !== undefined && cb.dataset.v !== "" ? parseFloat(cb.dataset.v) : NaN;
+        if (!isNaN(va) && !isNaN(vb)) { return (va - vb) * dir; }
+        return ca.textContent.trim().localeCompare(cb.textContent.trim()) * dir;
+      });
+      rows.forEach(function (r) { tbody.appendChild(r); });
+    });
+  });
+})();
+</script>
+{% endblock %}

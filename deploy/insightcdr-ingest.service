@@ -1,0 +1,14 @@
+[Unit]
+Description=InsightCDR ingest worker
+After=network.target
+
+[Service]
+User=llmadmin
+WorkingDirectory=/opt/insightcdr
+EnvironmentFile=/opt/insightcdr/config/.env
+# No venv (see insightcdr-web.service).
+ExecStart=/usr/bin/python3 -m ingest.worker
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

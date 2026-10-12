@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Search — InsightCDR{% endblock %}
+{% block content %}
+<style>
+  .page-title { margin: 0 0 14px; font-size: 20px; }
+  .search-card {
+    background: var(--ic-surface); border: 1px solid var(--ic-border); border-radius: 8px;
+    padding: 16px 18px; margin-bottom: 20px;
+  }
+  .filter-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px 16px; align-items: end;
+  }
+  .filter-grid label { display: flex; flex-direction: column; gap: 4px;
+                       font-size: 12px; font-weight: 600; color: var(--ic-muted); }
+  .filter-grid input, .filter-grid select {
+    padding: 7px 10px; border: 1px solid var(--ic-border); border-radius: 4px;
+    font: inherit; color: var(--ic-text); background: var(--ic-surface); min-width: 0;
+  }
+  .filter-actions { display: flex; gap: 10px; align-items: center; }
+  .filter-grid button {
+    padding: 8px 18px; background: var(--ic-accent); color: #fff; border: none;
+    border-radius: 4px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .filter-grid button:hover { background: var(--ic-accent-hover); }
+  .filter-grid .reset { font-size: 13px; }
+  .empty { color: var(--ic-muted); }
+</style>
+<h1 class="page-title">Call search</h1>
+<section class="search-card">
+  <form method="get" action="/search/results"
+        hx-get="/search/results" hx-target="#results" hx-push-url="false">
+    <div class="filter-grid">
+      <label>Number
+        <input name="number" value="{{ f.get('number','') }}" placeholder="calling or called">
+      </label>
+      <label>User
+        <input name="user" value="{{ f.get('user','') }}" placeholder="user id">
+      </label>
+      <label>Device
+        <input name="device" value="{{ f.get('device','') }}" placeholder="orig or dest">
+      </label>
+      <label>Cluster
+        <select name="cluster">
+          <option value="">All</option>
+          {% for c in clusters %}
+          <option value="{{ c }}" {% if f.get('cluster') == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>From (UTC)
+        <input type="datetime-local" name="from_ts" value="{{ f.get('from_ts','') }}">
+      </label>
+      <label>To (UTC)
+        <input type="datetime-local" name="to_ts" value="{{ f.get('to_ts','') }}">
+      </label>
+      <label>Min duration (s)
+        <input name="min_duration" inputmode="numeric" value="{{ f.get('min_duration','') }}">
+      </label>
+      <label>Disposition
+        <select name="disposition">
+          <option value="">Any</option>
+          {% for d in ['answered', 'no-answer', 'failed'] %}
+          <option value="{{ d }}" {% if f.get('disposition') == d %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>MOS ≤
+        <input name="mos_max" inputmode="decimal" value="{{ f.get('mos_max','') }}">
+      </label>
+      <input type="hidden" name="page" value="1">
+      <div class="filter-actions">
+        <button type="submit">Search</button>
+        <a class="reset" href="/search">Reset</a>
+      </div>
+    </div>
+  </form>
+</section>
+<div id="results">
+  {% if results %}
+  {% include "results.html" %}
+  {% else %}
+  <p class="empty">Enter filters and press Search. Results are paginated 50 calls per page.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Worst calls — InsightCDR{% endblock %}
+{% block content %}
+<style>
+  .page-title { margin: 0 0 14px; font-size: 20px; }
+  .quality-sub { color: var(--ic-muted); margin: -6px 0 16px; max-width: 920px; }
+  .filter-card, .table-card {
+    background: var(--ic-surface); border: 1px solid var(--ic-border);
+    border-radius: 8px; padding: 16px 18px; margin-bottom: 20px;
+  }
+  .filter-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px 16px; align-items: end;
+  }
+  .filter-grid label { display: flex; flex-direction: column; gap: 4px;
+                       font-size: 12px; font-weight: 600; color: var(--ic-muted); }
+  .filter-grid input, .filter-grid select {
+    padding: 7px 10px; border: 1px solid var(--ic-border); border-radius: 4px;
+    font: inherit; color: var(--ic-text); background: var(--ic-surface); min-width: 0;
+  }
+  .filter-actions { display: flex; gap: 10px; align-items: center; }
+  .filter-grid button {
+    padding: 8px 18px; background: var(--ic-accent); color: #fff; border: none;
+    border-radius: 4px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .filter-grid button:hover { background: var(--ic-accent-hover); }
+  .table-card table { border-collapse: collapse; width: 100%; }
+  .table-card th, .table-card td {
+    text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--ic-border);
+    white-space: nowrap;
+  }
+  .table-card th { color: var(--ic-muted); font-size: 12px; text-transform: uppercase;
+                   letter-spacing: 0.4px; }
+  .table-card td.num, .table-card th.num { text-align: right; }
+  .table-card td.mos { font-weight: 700; }
+  .table-card tr:last-child td { border-bottom: none; }
+  .result-meta { color: var(--ic-muted); font-size: 13px; margin: 10px 0 0; }
+  .empty { color: var(--ic-muted); }
+</style>
+<h1 class="page-title">Worst calls</h1>
+<p class="quality-sub">Calls ranked by lowest MOS first, with the per-call CMR packet loss, jitter and latency beside each row. Filter to one device, cluster or date range to narrow the list.</p>
+<section class="filter-card">
+  <form method="get" action="/quality/worst">
+    <div class="filter-grid">
+      <label>Device
+        <input name="device" value="{{ f.get('device','') }}" placeholder="orig or dest">
+      </label>
+      <label>Cluster
+        <select name="cluster">
+          <option value="">All</option>
+          {% for c in clusters %}
+          <option value="{{ c }}" {% if f.get('cluster') == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>From (UTC)
+        <input type="datetime-local" name="from_ts" value="{{ f.get('from_ts','') }}">
+      </label>
+      <label>To (UTC)
+        <input type="datetime-local" name="to_ts" value="{{ f.get('to_ts','') }}">
+      </label>
+      <label>MOS &le;
+        <input name="mos_max" inputmode="decimal" value="{{ f.get('mos_max','') }}">
+      </label>
+      <div class="filter-actions">
+        <button type="submit">Apply</button>
+        <a href="/quality/worst">Reset</a>
+      </div>
+    </div>
+  </form>
+</section>
+<section class="table-card">
+{% if rows %}
+  <table>
+    <thead><tr>
+      <th>Started (UTC)</th><th>Calling</th><th>Called</th><th>Devices</th>
+      <th>Disposition</th><th class="num">Duration</th><th class="num">MOS</th>
+      <th class="num">Packet loss</th><th class="num">Jitter (ms)</th>
+      <th class="num">Latency (ms)</th><th></th>
+    </tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td>{{ r.dt }}</td>
+        <td>{{ r.calling }}</td>
+        <td>{{ r.called }}</td>
+        <td>
+          {% if r.odev_link %}<a href="{{ r.odev_link }}">{{ r.odev }}</a>{% else %}{{ r.odev }}{% endif %}
+          / {% if r.ddev_link %}<a href="{{ r.ddev_link }}">{{ r.ddev }}</a>{% else %}{{ r.ddev }}{% endif %}
+        </td>
+        <td>{{ r.disp }}</td>
+        <td class="num">{{ r.dur }}</td>
+        <td class="num mos">{{ r.mos }}</td>
+        <td class="num">{{ r.lost }}</td>
+        <td class="num">{{ r.jitter }}</td>
+        <td class="num">{{ r.latency }}</td>
+        <td><a href="{{ r.link }}">Detail</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="result-meta">Showing the {{ rows|length }} worst call(s) with MOS data.</p>
+{% else %}
+  <p class="empty">No calls with MOS data match the filters.</p>
+  <p class="result-meta">MOS comes from CMR quality legs; calls without CMR quality data are excluded here.</p>
+{% endif %}
+</section>
+{% endblock %}

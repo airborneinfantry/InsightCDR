@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Device {{ device }} — InsightCDR{% endblock %}
+{% block content %}
+<style>
+  .page-title { margin: 0 0 14px; font-size: 20px; }
+  .dev-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .dev-head a { font-size: 13px; }
+  .quality-sub { color: var(--ic-muted); margin: -6px 0 16px; max-width: 920px; }
+  .table-card {
+    background: var(--ic-surface); border: 1px solid var(--ic-border);
+    border-radius: 8px; padding: 16px 18px; margin-bottom: 20px;
+  }
+  .section-title { margin: 0 0 12px; font-size: 15px; }
+  svg.trend { width: 100%; height: auto; display: block; }
+  .table-card table { border-collapse: collapse; width: 100%; }
+  .table-card th, .table-card td {
+    text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--ic-border);
+    white-space: nowrap;
+  }
+  .table-card th { color: var(--ic-muted); font-size: 12px; text-transform: uppercase;
+                   letter-spacing: 0.4px; }
+  .table-card td.num, .table-card th.num { text-align: right; }
+  .table-card td.mos { font-weight: 700; }
+  .table-card tr:last-child td { border-bottom: none; }
+  .empty { color: var(--ic-muted); }
+</style>
+<div class="dev-head">
+  <h1 class="page-title">Device quality — {{ device }}</h1>
+  <a href="{{ search_link }}">Search calls for this device</a>
+</div>
+{% if n_days %}
+<p class="quality-sub">{{ total_legs }} CMR leg(s) across {{ n_days }} day(s). Read: a sustained low avg-MOS across many days means a degraded device; a single outlier day among normal neighbours means one bad call.</p>
+<section class="table-card">
+  <h2 class="section-title">Avg MOS by day (oldest to newest)</h2>
+  {% if spark %}
+  {{ spark | safe }}
+  {% else %}
+  <p class="empty">No MOS values recorded for this device — per-leg quality columns are absent.</p>
+  {% endif %}
+</section>
+<section class="table-card">
+  <table>
+    <thead><tr>
+      <th>Day (UTC)</th><th class="num">Legs</th><th class="num">Avg MOS</th>
+      <th class="num">Packet loss</th><th class="num">Jitter (ms)</th>
+      <th class="num">Latency (ms)</th>
+    </tr></thead>
+    <tbody>
+    {% for d in days %}
+      <tr>
+        <td>{{ d.day }}</td>
+        <td class="num">{{ d.legs }}</td>
+        <td class="num mos">{{ d.avg_mos }}</td>
+        <td class="num">{{ d.lost }}</td>
+        <td class="num">{{ d.jitter }}</td>
+        <td class="num">{{ d.latency }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<section class="table-card">
+  <p class="empty">No CMR quality records for device {{ device }}.</p>
+  <p class="quality-sub">The device appears in {{ n_orig }} call(s) as originating and {{ n_dest }} as receiving — <a href="{{ search_link }}">open them in call search</a>. Device quality history needs CMR records with this device_name.</p>
+</section>
+{% endif %}
+{% endblock %}

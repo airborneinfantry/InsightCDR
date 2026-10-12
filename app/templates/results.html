@@ -1,0 +1,43 @@
+<table class="result-table">
+  <thead><tr>
+    <th>Started (UTC)</th><th>Calling</th><th>Called</th>
+    <th>Orig device</th><th>Dest device</th><th>Disposition</th>
+    <th class="num">Duration</th><th class="num">MOS</th>
+    <th class="num">Lost</th><th class="num">Jitter</th><th class="num">Latency</th><th></th>
+  </tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td>{{ r.dt }}</td>
+      <td>{{ r.calling }}</td>
+      <td>{{ r.called }}</td>
+      <td>{{ r.odev }}</td>
+      <td>{{ r.ddev }}</td>
+      <td><span class="disp disp-{{ r.disp }}">{{ r.disp }}</span></td>
+      <td class="num">{{ r.dur }}</td>
+      <td class="num">{{ r.mos }}</td>
+      <td class="num">{{ r.lost }}</td>
+      <td class="num">{{ r.jitter }}</td>
+      <td class="num">{{ r.latency }}</td>
+      <td><a href="{{ r.link }}">Detail</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if total > 0 %}
+<p class="result-meta">{{ total }} call(s) found — page {{ page }} of {{ pages }}</p>
+<nav class="pager">
+  {% if page > 1 %}
+  <a class="pg" href="/search/results?{{ qs }}&amp;page=1" hx-get="/search/results?{{ qs }}&amp;page=1" hx-target="#results">First</a>
+  <a class="pg" href="/search/results?{{ qs }}&amp;page={{ page - 1 }}" hx-get="/search/results?{{ qs }}&amp;page={{ page - 1 }}" hx-target="#results">Prev</a>
+  {% endif %}
+  <span>Page {{ page }} of {{ pages }}</span>
+  {% if page < pages %}
+  <a class="pg" href="/search/results?{{ qs }}&amp;page={{ page + 1 }}" hx-get="/search/results?{{ qs }}&amp;page={{ page + 1 }}" hx-target="#results">Next</a>
+  <a class="pg" href="/search/results?{{ qs }}&amp;page={{ pages }}" hx-get="/search/results?{{ qs }}&amp;page={{ pages }}" hx-target="#results">Last</a>
+  {% endif %}
+</nav>
+{% endif %}
+{% if total == 0 %}
+<p class="empty">No calls match the filters.</p>
+{% endif %}

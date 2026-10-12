@@ -1,0 +1,15 @@
+# InsightCDR site block — imported into llmdev's existing Caddyfile
+# (which already carries the global block and the other sites on :8444/:8445).
+#
+# Brief-verbatim form was `insightcdr.local:8446`; two deviations, both forced
+# by Caddy: (a) a bare-port key (`:8446`) would become the default/catch-all
+# TLS automation policy and conflicts with `tls internal` ("key without
+# hostname ... in conflict"), and (b) a hostname key would not match the
+# release-gate request `curl -sk https://127.0.0.1:8446/login` (Caddy matches
+# on Host). The block therefore lists the two addresses it must serve, in the
+# same form as the existing pre-existing site blocks. The global block sets
+# `auto_https off`; the explicit scheme + `tls internal` force HTTPS here.
+https://127.0.0.1:8446, https://192.168.0.123:8446 {
+    tls internal
+    reverse_proxy 127.0.0.1:8011
+}
